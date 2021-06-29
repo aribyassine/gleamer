@@ -1,6 +1,8 @@
 package com.example.gleamer.storage;
 
 import com.example.gleamer.Histogram;
+import com.example.gleamer.model.MetaData;
+import com.example.gleamer.repository.MetaDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -26,15 +28,17 @@ public class FileSystemStorageService implements StorageService {
 
     private final Path rootLocation;
     private final Histogram histogram;
+    private final MetaDataRepository metaDataRepository;
 
     @Autowired
-    public FileSystemStorageService(StorageProperties storageProperties, Histogram histogram) {
+    public FileSystemStorageService(StorageProperties storageProperties, Histogram histogram, MetaDataRepository metaDataRepository) {
         this.rootLocation = Paths.get(storageProperties.getLocation());
         this.histogram = histogram;
+        this.metaDataRepository = metaDataRepository;
     }
 
     @Override
-    public void store(MultipartFile file) {
+    public MetaData store(MultipartFile file) {
         try {
             if (file.isEmpty()) {
                 throw new StorageException("Failed to store empty file.");
@@ -57,6 +61,8 @@ public class FileSystemStorageService implements StorageService {
 
                 Files.copy(is, destinationFile,
                         StandardCopyOption.REPLACE_EXISTING);
+                MetaData metaData = new MetaData(file.getOriginalFilename(), image.getHeight(), image.getWidth(), image.getHeight() * image.getWidth());
+                return metaDataRepository.save(metaData);
             }
         } catch (IOException e) {
             throw new StorageException("Failed to store file.", e);
